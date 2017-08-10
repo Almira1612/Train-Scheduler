@@ -19,7 +19,8 @@ $("#submitButton").on("click",function(){
 	//user inputs from form
 	var name = $("#trainName").val().trim();
 	var destination = $("#destination").val().trim();
-	var firstTrainTime = $("#firstTrainTime").val().trim();
+	//var startDate = moment($("#startDate").val().trim(), "DD/MM/YY").format('L');
+	var firstTrainTime = moment($("#firstTrainTime").val().trim());
 	var frequency = $("#frequency").val().trim();
    
      console.log(name, destination, firstTrainTime, frequency);
@@ -45,16 +46,39 @@ $("#submitButton").on("click",function(){
 
 });
 
-database.ref().orderByChild("dateAdded").limitToLast(1).on("child_added", function(
-	snapshot) {
+database.ref().orderByChild("dateAdded").on("child_added", function(childSnapshot) {
+    var tfrequency = childSnapshot.val().frequency;
+    var convertedDate = moment(childSnapshot.val().firstTrainTime, "hh:mm").subtract(1, 'years');
+    var trainTime = moment(convertedDate).format('HH:mm');
+    var destination = childSnapshot.val().destination;
+    var currentTime = moment().format("HH:mm");
+    var firstTimeConverted = moment(trainTime,'hh:mm').subtract(1, 'years');
+	
+    var diffTime = moment().diff(moment(firstTimeConverted), "minutes");
+     console.log("DIFFERENCE IN TIME: " + diffTime);
 
+     var tRemainder = diffTime % tfrequency;
+     console.log(tRemainder);
+
+     var tMinutesTillTrain = tfrequency - tRemainder;
+     console.log("MINUTES TILL TRAIN: " + tMinutesTillTrain);
+
+     var nextTrain = moment().add(tMinutesTillTrain, "minutes").format('HH:mm');
+     console.log("ARRIVAL TIME: " + moment(nextTrain).format("hh:mm"));
 	//Appends a new row to the table with data entries from most recent entry in Firebase database 
 	$("#trainTable").append(
 	'<tr>' +
-	    '<td>' + snapshot.val().name + '</td>' +
-	    '<td>' + snapshot.val().destination +'</td>' +
-	    '<td>' + snapshot.val().frequency + '</td>' +
-	    '<td></td>' +
-	    '<td></td>' +
-	'</tr>');
-  });
+	    '<td>' + childSnapshot.val().name + '</td>' +
+	    '<td>' + childSnapshot.val().destination +'</td>' +
+	    '<td>' + childSnapshot.val().frequency + '</td>' +
+	    '<td>' + nextTrain + '</td>' +
+	    '<td>' + tMinutesTillTrain + '</td>' +
+	'</tr>')},function(errorObject) {
+    console.log('Errors handled: ' + errorObject.code);
+  })
+
+  
+
+ //setInterval(function(){
+   // location.reload();
+  //}, 60000)
